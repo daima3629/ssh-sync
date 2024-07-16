@@ -11,17 +11,17 @@ putsn() {  # solves color emission problem https://qiita.com/ko1nksm/items/d0b06
 }
 
 # Check required commands exist
-if [[ "$(type bw)" = "bw not found" ]]; then
+if [[ -z "$(command -v bw)" ]]; then
     putsn "${ESC}${RED}Bitwarden CLI isn't installed. Exiting.${RESET}"
     exit 1
 fi
 
-if [[ "$(type jq)" = "jq not found" ]]; then
+if [[ -z "$(command -v jq)" ]]; then
     putsn "${ESC}${RED}jq isn't installed. Exiting.${RESET}"
     exit 1
 fi
 
-if [[ "$(type python3)" = "python3 not found" ]]; then
+if [[ -z "$(command -v python3)" ]]; then
     putsn "${ESC}${RED}Python3 isn't installed. Exiting.${RESET}"
     exit 1
 fi
@@ -37,7 +37,7 @@ fi
 
 # Ask install directory
 default_install_directory=${HOME}/.local/ssh-sync/
-read -p "Choose Install Location (${default_install_directory}): " install_directory
+read -p "Enter install location (${default_install_directory}): " install_directory
 if [[ -z install_directory ]]; then
     install_directory=default_install_directory
 fi
