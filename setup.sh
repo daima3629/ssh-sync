@@ -10,6 +10,20 @@ putsn() {  # solves color emission problem https://qiita.com/ko1nksm/items/d0b06
   printf '%s\n' "$*"
 }
 
+uuidv7() {  # Reference: https://github.com/nalgeon/uuidv7/blob/main/src/uuidv7.sh
+    timestamp=$(date +%s)000
+    timestamp_hi=$(( timestamp >> 16 ))
+    timestamp_lo=$(( timestamp & 0xFFFF ))
+
+    rand_a=0x$(LC_ALL=C tr -dc '0-9a-f' < /dev/urandom|head -c4)
+    ver_rand_a=$(( 0x7000 | ( 0xFFF & rand_a ) ))
+    rand_b_hi=0x$(LC_ALL=C tr -dc '0-9a-f' < /dev/urandom|head -c4)
+    var_rand_hi=$(( 0x8000 | ( 0x3FFF & rand_b_hi ) ))
+    rand_b_lo=$(LC_ALL=C tr -dc '0-9a-f' < /dev/urandom|head -c12)
+
+    printf "%08x-%04x-%04x-%4x-%s" "$timestamp_hi" "$timestamp_lo" "$ver_rand_a" "$var_rand_hi" "$rand_b_lo"
+}
+
 # Check required commands exist
 if [[ -z "$(command -v bw)" ]]; then
     putsn "${ESC}${RED}Bitwarden CLI isn't installed. Exiting.${RESET}"
@@ -18,6 +32,11 @@ fi
 
 if [[ -z "$(command -v jq)" ]]; then
     putsn "${ESC}${RED}jq isn't installed. Exiting.${RESET}"
+    exit 1
+fi
+
+if [[ -z "$(command -v wget)" ]]; then
+    putsn "${ESC}${RED}wget isn't installed. Exiting.${RESET}"
     exit 1
 fi
 
@@ -49,6 +68,7 @@ putsn "Follow the steps below in another terminal and obtain the session key."
 putsn "1. Execute ${ESC}${CYAN}bw login${RESET} and follow the login step (if you're not already logged in)."
 putsn "2. Execute ${ESC}${CYAN}bw unlock${RESET} and input your master password."
 putsn "3. Copy displayed session key and paste here."
+putsn
 read -sp "Session key (input is hidden): " session_key
 putsn
 
@@ -58,3 +78,34 @@ if [[ "$(bw status --session $session_key | jq .status | sed 's/\"//g')" != "unl
     exit 1
 fi
 
+# Ask the folder where secret keys are stored
+putsn
+read -p "Enter the folder name where secret keys are stored (secret_keys): " folder_name
+if [[ -z folder_name ]]; then
+    folder_name="secret_keys"
+fi
+
+# Install Python script
+putsn "${ESC}${BLUE}Downloading and installing Python script...${RESET}"
+mkdir -p "${install_directory}"
+wget -q -O - "urlurl" > ${install_directory}/daemon.py
+
+# Install service
+putsn "${ESC}${BLUE}Downloading and installing service file...${RESET}"
+mkdir -p $HOME/.config/systemd/user/
+wget -q -O - "urlu" > $HOME/.config/systemd/user/ssh-sync.service
+systemctl --user enable ssh-sync.service
+
+# Create venv
+python3 -m venv ${install_directory}/.venv
+
+# Install required Python libraries
+putsn "${ESC}${BLUE}Installing required python libraries to the venv..."
+source ${install_directory}/.venv/bin/activate
+pip install -q "urlurl"
+deactivate
+
+# Start daemon
+systemctl --user start ssh-sync.service
+
+putsn "Installation completed. "
