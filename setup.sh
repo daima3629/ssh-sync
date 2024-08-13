@@ -85,6 +85,19 @@ if [[ -z folder_name ]]; then
     folder_name="secret_keys"
 fi
 
+# Create local setting json
+mkdir -p $HOME/.config/ssh-sync
+device_id="$(uuidv7)"
+jq -ncM ".deviceId=\"${device_id}\"" | \
+jq -cM ".installDirectory=\"${install_directory}\"" | \
+jq -cM ".sessionKey=\"${session_key}\""
+jq -cM ".bwSecretFolder=\"${folder_name}\"" | \
+jq -cM ".conflicting_keys={}" | \
+jq -cM ".conflicting_configs={}" > ${HOME}/.config/ssh-sync/config.json
+
+# Add/Create bitwarden setting json
+
+
 # Install Python script
 putsn "${ESC}${BLUE}Downloading and installing Python script...${RESET}"
 mkdir -p "${install_directory}"
